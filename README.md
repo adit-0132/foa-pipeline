@@ -133,7 +133,7 @@ Writes two files (always overwritten):
 |---|---|
 | `clean_text(text)` | Strips HTML tags, decodes 6 common entities, normalizes whitespace |
 | `normalize_date(raw)` | Handles epoch-ms integers, ISO strings, free-form via `dateutil`. Falls back to raw string on parse failure |
-| `parse_award(v)` | int/float/string → plain string, `None` for missing or zero |
+| `parse_award(v)` | int/float/string → plain string, `None` for missing, zero, or sentinel strings (`"none"`, `"n/a"`, `"null"`, etc.) |
 
 ---
 
@@ -196,17 +196,17 @@ Output files are always overwritten. The directory is created if it does not exi
 ## Examples
 
 ```bash
-# Grants.gov opportunity page
+# Grants.gov opportunity page (path-style URL)
 python main.py --url "https://www.grants.gov/search-results-detail/355964" --out_dir ./out
 
-# NSF awarded grant (uses Awards REST API, not HTML scraping)
+# Grants.gov opportunity page (query string ID)
+python main.py --url "https://www.grants.gov/search-results-detail/355964?oppId=355964" --out_dir ./out
+
+# NSF awarded grant (uses Awards REST API)
 python main.py --url "https://www.nsf.gov/awardsearch/show-award?AWD_ID=2517085" --out_dir ./out
 
-# NSF program page on new.nsf.gov (Next.js SPA — uses __NEXT_DATA__ extraction)
-python main.py --url "https://new.nsf.gov/funding/opportunities/robust-intelligence" --out_dir ./out
-
-# NSF solicitation on www.nsf.gov (static HTML)
-python main.py --url "https://www.nsf.gov/pubs/2024/nsf24569/nsf24569.htm" --out_dir ./out
+# NSF awarded grant (different award, AI/ML domain)
+python main.py --url "https://www.nsf.gov/awardsearch/show-award?AWD_ID=2319592" --out_dir ./out
 ```
 
 ---

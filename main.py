@@ -220,6 +220,10 @@ def normalize_date(raw) -> str:
         return s
 
 
+# Strings the Grants.gov API returns when an award field is absent
+_AWARD_NULLS = {"none", "n/a", "na", "0", "null", "-"}
+
+
 def parse_award(v) -> str | None:
     """Normalize award value to a plain string or None."""
     if v is None:
@@ -227,7 +231,15 @@ def parse_award(v) -> str | None:
     if isinstance(v, (int, float)):
         return str(int(v)) if v else None
     s = str(v).strip()
-    return s or None
+    return None if (not s or s.lower() in _AWARD_NULLS) else s
+
+
+def _first(*args):
+    """Return the first truthy argument, or empty string."""
+    for a in args:
+        if a:
+            return a
+    return ""
 
 # ── Grants.gov ingestion ───────────────────────────────────────────────────────
 
@@ -312,14 +324,6 @@ def _ingest_nsf_award_api(awd_id: str, url: str) -> dict:
         "source":      "NSF",
         "ingested_at": datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
-
-
-def _first(*args):
-    """Return the first truthy argument, or empty string."""
-    for a in args:
-        if a:
-            return a
-    return ""
 
 
 def _ingest_nsf_program_page(url: str) -> dict:
@@ -574,7 +578,7 @@ def tag(foa: dict) -> dict:
 
 # ── Export ─────────────────────────────────────────────────────────────────────
 
-def export(foa: dict, out_dir: str):
+def export(foa: dict, out_dir: str) -> None:
     os.makedirs(out_dir, exist_ok=True)
 
     # JSON
