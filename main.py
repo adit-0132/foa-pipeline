@@ -276,12 +276,75 @@ def ingest_grants_gov(url: str) -> dict:
     d = data.get("data", {})
     synopsis = d.get("synopsis", {})
 
+    # ── Additional categorization fields ──
+
+    # Opportunity Category  (e.g. "Discretionary")
+    opp_cat = d.get("opportunityCategory") or d.get("category") or {}
+    opportunity_category = clean_text(
+        opp_cat.get("description", "") if isinstance(opp_cat, dict) else str(opp_cat)
+    )
+
+    # Funding Instrument Type  (e.g. "Cooperative Agreement, Grant, …")
+    fi_list = d.get("fundingInstrumentTypes") or d.get("fundingInstruments") or []
+    funding_instrument_type = ", ".join(
+        clean_text(fi.get("description", "") if isinstance(fi, dict) else str(fi))
+        for fi in (fi_list if isinstance(fi_list, list) else [])
+    ) or ""
+
+    # Category of Funding Activity  (e.g. "Science and Technology …")
+    cat_fa = (d.get("categoryFundingActivity")
+              or d.get("fundingActivityCategory")
+              or d.get("fundingCategories")
+              or {})
+    if isinstance(cat_fa, dict):
+        category_of_funding_activity = clean_text(cat_fa.get("description", ""))
+    elif isinstance(cat_fa, list):
+        category_of_funding_activity = ", ".join(
+            clean_text(c.get("description", "") if isinstance(c, dict) else str(c))
+            for c in cat_fa
+        )
+    else:
+        category_of_funding_activity = clean_text(str(cat_fa))
+
+    # CFDA / Assistance Listings  (e.g. "12.910 -- Research and Technology Development")
+    cfda_list = d.get("cfdaNumbers") or d.get("cfdas") or d.get("cfdaList") or []
+    assistance_listings = "; ".join(
+        filter(None, (
+            f"{c.get('cfdaNumber', '')} -- {c.get('programTitle', '')}".strip(" -")
+            if isinstance(c, dict) else str(c)
+            for c in (cfda_list if isinstance(cfda_list, list) else [])
+        ))
+    )
+
+    # Cost Sharing or Matching Requirement
+    cs = synopsis.get("costSharing")
+    if isinstance(cs, bool):
+        cost_sharing = "Yes" if cs else "No"
+    elif cs is not None:
+        cost_sharing = clean_text(str(cs))
+    else:
+        cost_sharing = ""
+
+    # Archive date & estimated total program funding
+    archive_date = normalize_date(synopsis.get("archiveDateStr") or d.get("archiveDate"))
+    estimated_funding = parse_award(
+        synopsis.get("estimatedFunding")
+        or synopsis.get("estimatedTotalProgramFunding")
+    )
+
     return {
         "foa_id":      d.get("opportunityNumber") or opp_id,
         "title":       clean_text(d.get("opportunityTitle")),
         "agency":      clean_text(synopsis.get("agencyName") or d.get("owningAgencyCode")),
         "open_date":   normalize_date(synopsis.get("postingDateStr")),
         "close_date":  normalize_date(synopsis.get("responseDateStr")),
+        "archive_date":            archive_date,
+        "opportunity_category":    opportunity_category,
+        "funding_instrument_type": funding_instrument_type,
+        "category_of_funding_activity": category_of_funding_activity,
+        "assistance_listings":     assistance_listings,
+        "cost_sharing":            cost_sharing,
+        "estimated_funding":       estimated_funding,
         "eligibility": clean_text(", ".join(
                            t.get("description", "") for t in (synopsis.get("applicantTypes") or [])
                        )),
@@ -560,11 +623,14 @@ def ingest(url: str) -> dict:
 # ── Rule-based tagger ──────────────────────────────────────────────────────────
 
 def tag(foa: dict) -> dict:
-    """Match keywords against title + description + eligibility, return matched ontology tags."""
+    """Match keywords against title + description + eligibility + funding metadata, return matched ontology tags."""
     corpus = " ".join([
         foa.get("title", "") or "",
         foa.get("description", "") or "",
         foa.get("eligibility", "") or "",
+        foa.get("category_of_funding_activity", "") or "",
+        foa.get("assistance_listings", "") or "",
+        foa.get("funding_instrument_type", "") or "",
     ]).lower()
 
     return {
@@ -596,7 +662,11 @@ def export(foa: dict, out_dir: str) -> None:
 
     base_fields = [
         "foa_id", "title", "agency", "source",
-        "open_date", "close_date", "eligibility", "description",
+        "open_date", "close_date", "archive_date",
+        "opportunity_category", "funding_instrument_type",
+        "category_of_funding_activity", "assistance_listings",
+        "cost_sharing", "estimated_funding",
+        "eligibility", "description",
         "award_min", "award_max", "source_url", "ingested_at",
         "tags_domains", "tags_methods", "tags_populations", "tags_themes",
     ]

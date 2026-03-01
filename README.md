@@ -282,3 +282,23 @@ python main.py --url "https://www.nsf.gov/awardsearch/show-award?AWD_ID=2319592"
   that fit the same ingestor pattern.
 - Configurable output fields: a `--fields` argument or config file to control
   which columns appear in the CSV.
+
+---
+
+## Quick Start
+
+```bash
+pip install -r requirements.txt
+```
+
+### Grants.gov
+
+```bash
+python main.py --url "https://www.grants.gov/search-results-detail/354134" --out_dir ./out
+```
+
+### NSF
+
+```bash
+python main.py --url "https://www.nsf.gov/awardsearch/show-award?AWD_ID=2517085" --out_dir ./out
+```
