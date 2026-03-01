@@ -10,14 +10,14 @@ and writes `foa.json` and `foa.csv` to the specified output directory.
 
 Two federal funding sources are supported:
 
-- **Grants.gov** — via the `api.grants.gov/v1/api/fetchOpportunity` JSON API
-- **NSF** — via the public NSF Awards REST API (for awarded grants) or
+- **Grants.gov** : via the `api.grants.gov/v1/api/fetchOpportunity` JSON API
+- **NSF** : via the public NSF Awards REST API (for awarded grants) or
   HTML/Next.js extraction (for program and solicitation pages)
 
 After ingestion, records are tagged by scanning a lowercase corpus of
 `title + description + eligibility` against a four-category ontology:
 domains, methods, target populations, and research themes. Matching is
-plain case-insensitive substring — no ML, no embeddings.
+plain case-insensitive substring : no ML, no embeddings.
 
 ---
 
@@ -58,7 +58,7 @@ export(foa, out_dir)
 
 ### `ingest_grants_gov(url)`
 
-Extracts the opportunity ID from the URL — checks query string params
+Extracts the opportunity ID from the URL : checks query string params
 `oppId`, `opportunityId`, `id` first, then falls back to a digit pattern
 in the path. POSTs to `api.grants.gov/v1/api/fetchOpportunity` with
 `{"opportunityId": <int>}`.
@@ -88,20 +88,20 @@ Award records have no eligibility data (field is left empty).
 HTML scraper for NSF program and solicitation pages. Tries three strategies
 in order, returning on the first that yields a title or description:
 
-1. **`__NEXT_DATA__`** — `new.nsf.gov` is a Next.js SPA. The full data tree
+1. **`__NEXT_DATA__`** : `new.nsf.gov` is a Next.js SPA. The full data tree
    is embedded in `<script id="__NEXT_DATA__">`. Several key name variants
    are checked: `opportunity`, `program`, `solicitation`, `programDetail`, `data`.
 
-2. **JSON-LD** — `<script type="application/ld+json">` structured data. Uses
+2. **JSON-LD** : `<script type="application/ld+json">` structured data. Uses
    `name`/`headline` for title, `description` for body.
 
-3. **Static HTML** — heading-based traversal: finds the first heading matching
+3. **Static HTML** : heading-based traversal: finds the first heading matching
    eligibility/overview keywords and collects following siblings. Falls back to
    `<meta>` tags and longest `<p>` for description. Dates are extracted via
    regex from heading-adjacent text. Award amounts are extracted from prose
    matching `\baward\b ... $X`.
 
-Before scraping, redirects are followed manually — only while the redirect
+Before scraping, redirects are followed manually : only while the redirect
 target stays on `*.nsf.gov`. On 404, the alternate domain (`new.nsf.gov` ↔
 `www.nsf.gov`) is tried once.
 
@@ -123,8 +123,8 @@ Builds `corpus = (title + description + eligibility).lower()`. Scans against
 
 Writes two files (always overwritten):
 
-- **`foa.json`** — full nested dict including the `tags` sub-object
-- **`foa.csv`** — flat row; `tags` is expanded to four pipe-separated columns:
+- **`foa.json`** : full nested dict including the `tags` sub-object
+- **`foa.csv`** : flat row; `tags` is expanded to four pipe-separated columns:
   `tags_domains`, `tags_methods`, `tags_populations`, `tags_themes`
 
 ### Text / Date Helpers
@@ -152,11 +152,11 @@ award_min     string or null
 award_max     string or null
 source_url    original input URL
 ingested_at   UTC timestamp (ISO 8601)
-tags          {domains, methods, populations, themes} — JSON only
-tags_domains       pipe-separated — CSV only
-tags_methods       pipe-separated — CSV only
-tags_populations   pipe-separated — CSV only
-tags_themes        pipe-separated — CSV only
+tags          {domains, methods, populations, themes} : JSON only
+tags_domains       pipe-separated : CSV only
+tags_methods       pipe-separated : CSV only
+tags_populations   pipe-separated : CSV only
+tags_themes        pipe-separated : CSV only
 ```
 
 ---
@@ -248,7 +248,7 @@ python main.py --url "https://www.nsf.gov/awardsearch/show-award?AWD_ID=2319592"
 - `TIMEOUT = 30` applies to both connect and read. There is no separate
   connect timeout.
 - No retry logic. A transient 5xx returns immediately as an error.
-- `normalize_date` returns the raw string on parse failure — date columns may
+- `normalize_date` returns the raw string on parse failure : date columns may
   contain non-ISO values.
 - Output files are always overwritten with no backup.
 
